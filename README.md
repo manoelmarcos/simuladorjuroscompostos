@@ -1,165 +1,169 @@
 # Simulador de Aplicações Financeiras em DAX (Power BI)
 
-Este repositório contém um **simulador de investimentos com juros compostos** desenvolvido em **Power BI** utilizando **DAX**.
+Este repositório apresenta um **simulador completo de investimentos com
+juros compostos**, desenvolvido em **Power BI** utilizando
+exclusivamente **DAX**.\
+O objetivo é demonstrar, de forma didática e prática, como modelar
+**juros compostos com depósitos recorrentes mês a mês**, sem depender de
+funções financeiras prontas.
 
-A ideia é permitir que o usuário simule aplicações mensais com:
+------------------------------------------------------------------------
 
-- Depósito mensal configurável
-- Taxa de juros mensal variável (ex.: CDI, rentabilidade média, etc.)
-- Prazo em meses configurável
-- Cálculo detalhado, mês a mês, de:
-  - Saldo Inicial
-  - Depósito
-  - Juros do mês
-  - Saldo Final (Valor Acumulado)
+## 🚀 Funcionalidades
 
-O objetivo é ser um exemplo didático de como implementar **juros compostos com depósitos recorrentes** usando DAX, sem recorrer a funções financeiras prontas.
+O simulador permite:
 
----
+-   Definir **depósito mensal configurável**
+-   Informar **taxa de juros mensal variável** (ex.: CDI, poupança,
+    rentabilidade real)
+-   Escolher o **prazo do investimento**
+-   Visualizar cálculos detalhados por mês:
+    -   Saldo inicial
+    -   Depósito aplicado
+    -   Juros do mês
+    -   Saldo final (valor acumulado)
 
-## 1. Estrutura geral da solução
+É uma excelente referência para estudos de DAX, principalmente sobre
+**iteração**, **tabelas virtuais** e **modelagem financeira**.
 
-A lógica da solução é baseada em:
+------------------------------------------------------------------------
 
-1. Uma **tabela de meses** (1, 2, 3, … até um limite, por exemplo, 480 meses).
-2. **Parâmetros What-If** para:
-   - Depósito mensal (opcional, se quiser deixar variável)
-   - Taxa de juros mensal
-   - Quantidade de meses do investimento
-3. **Medidas DAX** que calculam, para cada mês:
-   - Saldo Inicial
-   - Juros/Rendimento do mês
-   - Valor Acumulado (Saldo Final)
-4. **Visuais** de tabela, linha, coluna e cartões para visualizar a evolução da aplicação.
+# 1. Arquitetura da Solução
 
-Suposições do modelo:
+A solução é composta pelos seguintes elementos:
 
-- Depósito padrão: **R$ 2.000,00** (pode ser parâmetro ou valor fixo).
-- Taxa informada pelo usuário como **percentual ao mês** (ex.: 0,93% ao mês).
-- Juros compostos com depósito no **início de cada mês**.
+### 1. Tabela de Meses (1 → 480)
 
----
+Base para iterar cada período.
 
-## 2. Pré-requisitos
+### 2. Parâmetros *What-If*
 
-- **Power BI Desktop** (versão recente).
-- Conhecimento básico de:
-  - Criação de tabelas calculadas
-  - Criação de medidas DAX
-  - Uso de parâmetros *What-If*
+-   Depósito mensal (opcional)
+-   Taxa mensal (%)
+-   Prazo em meses
 
----
+### 3. Medidas DAX
 
-## 3. Criar a tabela de Meses
+Cálculo do saldo inicial, juros, depósitos e valor acumulado.
 
-No Power BI, acesse:
+### 4. Visuais
 
-> Modeling > New Table
+Tabela detalhada, curva de crescimento, cartões-resumo e comparativos.
 
-Crie a tabela de meses:
+### Premissas
 
-```DAX
+-   Depósito padrão: **R\$ 2.000,00** (pode ser substituído por
+    parâmetro)
+-   Taxa informada em **percentual ao mês**
+-   Depósito ocorre no **primeiro dia do mês**
+
+------------------------------------------------------------------------
+
+# 2. Pré-requisitos
+
+-   **Power BI Desktop** (versão atualizada)
+-   Conceitos básicos de:
+    -   Tabelas calculadas
+    -   Medidas DAX
+    -   Parâmetros What-If
+
+------------------------------------------------------------------------
+
+# 3. Criando a Tabela de Meses
+
+Menu:
+
+> Modeling \> New Table
+
+``` dax
 DimMes =
 ADDCOLUMNS (
-    GENERATESERIES ( 1, 480, 1 ),      -- limite máximo de meses
+    GENERATESERIES ( 1, 480, 1 ),
     "MesTexto", "Mês " & FORMAT ( [Value], "0" )
 )
+```
 
-Em seguida:
+Renomeie **\[Value\]** para **Mes** (tipo inteiro).\
+Use **DimMes\[Mes\]** como eixo dos visuais.
 
-Renomeie a coluna [Value] para Mes (tipo inteiro).
+------------------------------------------------------------------------
 
-Você usará DimMes[Mes] como eixo dos visuais (gráficos e tabela).
+# 4. Parâmetros What-If
 
-4. Criar os parâmetros What-If
-4.1. Parâmetro de Taxa Mensal
+## 4.1. Taxa Mensal (%)
 
-No Power BI:
+> Modeling \> New Parameter \> Numeric
 
-Modeling > New Parameter > Numeric
+Configuração:
 
-Configure:
+-   Min: 0\
+-   Max: 3\
+-   Incremento: 0,05\
+-   Decimais: 2
 
-Nome: Par Taxa Mensal
+O Power BI cria:
 
-Mínimo: 0
+-   tabela: **Par Taxa Mensal**
+-   medida: **Par Taxa Mensal Value**
 
-Máximo: 3
+Crie:
 
-Incremento: 0,05
-
-Casas decimais: 2
-
-O Power BI vai criar:
-
-Uma tabela Par Taxa Mensal
-
-Uma medida: Par Taxa Mensal Value
-
-Crie então as medidas:
-
+``` dax
 Taxa Mensal (%) = 'Par Taxa Mensal'[Par Taxa Mensal Value]
 
 Taxa Mensal =
 DIVIDE ( [Taxa Mensal (%)], 100 )
+```
 
+------------------------------------------------------------------------
 
-Observação: a primeira medida guarda a taxa como percentual (ex.: 0,93), e a segunda converte para decimal (0,0093).
+## 4.2. Prazo do Investimento
 
-4.2. Parâmetro de Prazo (Meses)
+> Modeling \> New Parameter \> Numeric
 
-Novamente em:
+Configuração:
 
-Modeling > New Parameter > Numeric
+-   Min: 1\
+-   Max: 480\
+-   Incremento: 1
 
-Configure:
+Medida gerada:
 
-Nome: Par Prazo Meses
-
-Mínimo: 1
-
-Máximo: 480
-
-Incremento: 1
-
-Será criada automaticamente a medida:
-
+``` dax
 Meses Selecionados = 'Par Prazo Meses'[Par Prazo Meses Value]
+```
 
+------------------------------------------------------------------------
 
-Essa medida representa o número de meses do investimento definido pelo usuário.
+## 4.3. Parâmetro de Depósito Mensal (opcional)
 
-4.3. (Opcional) Parâmetro de Depósito Mensal
+> Modeling \> New Parameter \> Numeric
 
-Se desejar permitir que o usuário defina o valor do depósito mensal:
+Configuração:
 
-Modeling > New Parameter > Numeric
+-   Min: 100\
+-   Max: 10.000\
+-   Incremento: 100
 
-Configure:
+Medida gerada:
 
-Nome: Par Deposito Mensal
-
-Mínimo: 100
-
-Máximo: 10000
-
-Incremento: 100
-
-Medida automática gerada:
-
+``` dax
 Depósito Mensal = 'Par Deposito Mensal'[Par Deposito Mensal Value]
+```
 
+Ou, para fixar:
 
-Se preferir um valor fixo, basta criar:
-
+``` dax
 Depósito Mensal = 2000
+```
 
-5. Medidas DAX do simulador
-5.1. Medida – Valor Acumulado (Saldo Final de cada mês)
+------------------------------------------------------------------------
 
-Aqui entra o “truque” para evitar recursão em DAX:
-Para um mês N, cada depósito feito em um mês M cresce por (N - M + 1) meses (considerando depósito no início do mês).
+# 5. Medidas DAX do Simulador
 
+## 5.1. Valor Acumulado (Saldo Final por mês)
+
+``` dax
 Valor Acumulado =
 VAR MesAtual = SELECTEDVALUE ( DimMes[Mes] )
 VAR Prazo    = [Meses Selecionados]
@@ -178,14 +182,13 @@ IF (
     RETURN
         SUMX ( TabelaDepositos, Dep * [FatorCrescimento] )
 )
+```
 
+------------------------------------------------------------------------
 
-Essa medida devolve o saldo acumulado no final de cada mês.
+## 5.2. Saldo Inicial
 
-5.2. Medida – Saldo Inicial
-
-O saldo inicial do mês N é o Valor Acumulado do mês N - 1.
-
+``` dax
 Saldo Inicial =
 VAR MesAtual = SELECTEDVALUE ( DimMes[Mes] )
 VAR Prazo    = [Meses Selecionados]
@@ -202,13 +205,13 @@ IF (
         )
     )
 )
+```
 
-5.3. Medida – Juros/Rendimento Mensal
+------------------------------------------------------------------------
 
-A lógica dos juros do mês é:
+## 5.3. Juros Mensais
 
-Juros do mês = (Saldo Inicial + Depósito) × Taxa
-
+``` dax
 Juros Mensais =
 VAR MesAtual  = SELECTEDVALUE ( DimMes[Mes] )
 VAR Prazo     = [Meses Selecionados]
@@ -221,11 +224,13 @@ IF (
     BLANK(),
     ( SaldoIni + Dep ) * Taxa
 )
+```
 
-5.4. Medida – Depósito exibido na tabela
+------------------------------------------------------------------------
 
-Útil para não exibir depósitos após o fim do prazo selecionado:
+## 5.4. Depósito Exibido
 
+``` dax
 Depósito Exibido =
 VAR MesAtual = SELECTEDVALUE ( DimMes[Mes] )
 VAR Prazo    = [Meses Selecionados]
@@ -235,88 +240,54 @@ IF (
     BLANK(),
     [Depósito Mensal]
 )
+```
 
-6. Montar a tabela “planilha” no relatório
+------------------------------------------------------------------------
 
-Crie um visual do tipo Table e adicione os campos/medidas:
+# 6. Criando a Tabela de Simulação
 
-DimMes[Mes]
+Inclua no visual Table:
 
-[Depósito Exibido]
+-   DimMes\[Mes\]
+-   \[Depósito Exibido\]
+-   \[Saldo Inicial\]
+-   \[Juros Mensais\]
+-   \[Valor Acumulado\]
 
-[Saldo Inicial]
+Use os parâmetros como Slicers:
 
-[Juros Mensais]
+-   Par Taxa Mensal\
+-   Par Prazo Meses\
+-   (Opcional) Par Depósito Mensal
 
-[Valor Acumulado]
+------------------------------------------------------------------------
 
-Recomendações:
+# 7. Visuais Recomendados
 
-Formate os valores monetários em R$.
+## 7.1. Gráfico de Linha -- Valor Acumulado
 
-Deixe Mes como inteiro.
+Mostra a curva de crescimento exponencial.
 
-Coloque os parâmetros na página como slicers:
+## 7.2. Gráfico de Colunas -- Juros Mensais
 
-Par Taxa Mensal
+Mostra evolução do rendimento mensal.
 
-Par Prazo Meses
+## 7.3. Cartões de Resumo
 
-(Opcional) Par Deposito Mensal
-
-À medida que o usuário altera os parâmetros, a tabela de simulação é recalculada automaticamente.
-
-7. Visuais para ilustrar juros compostos
-
-Algumas sugestões de visuais para tornar o simulador mais didático:
-
-7.1. Gráfico de Linha – Valor Acumulado
-
-Visual: Line chart
-
-Eixo (X): DimMes[Mes]
-
-Valores (Y): [Valor Acumulado]
-
-Mostra de forma clara a curva exponencial do crescimento do investimento.
-
-7.2. Gráfico de Colunas – Juros Mensais
-
-Visual: Clustered Column Chart
-
-Eixo (X): DimMes[Mes]
-
-Valores (Y): [Juros Mensais]
-
-Mostra a evolução dos juros recebidos por mês.
-
-7.3. Cartões – Resumo do investimento
-
-Crie medidas auxiliares:
-
+``` dax
 Total Aportado =
 [Depósito Mensal] * [Meses Selecionados]
 
 Total Juros =
 [Valor Acumulado] - [Total Aportado]
+```
 
+## 7.4. Donut -- Aporte x Juros
 
-Use Card visuals para exibir:
+Visualiza proporção entre capital investido e rendimento.
 
-Saldo Final: [Valor Acumulado] filtrado pelo último mês (prazo máximo selecionado).
+------------------------------------------------------------------------
 
-Total Aportado: [Total Aportado]
-
-Total de Juros: [Total Juros]
-
-7.4. (Opcional) Gráfico de Pizza/Donut – Proporção Aporte x Juros
-
-Visual: Donut ou Pie chart
-
-Valores:
-
-[Total Aportado]
-
-[Total Juros]
-
-Permite ilustrar a proporção entre o que foi investido e o que foi ganho em juros.
+Este simulador demonstra como implementar juros compostos iterativos no
+Power BI utilizando apenas DAX, servindo como base para estudos e
+projetos de finanças pessoais.
